@@ -6,8 +6,10 @@ import queue
 import datetime
 
 
-
+# Initializing the dictionaries and CSV for product, warehouse and catalog
 print("Welcome to Product Inventory Management System")
+
+# Initializing a queue for batch logging
 queue = queue.Queue(maxsize=2)
 
 product= {
@@ -36,6 +38,7 @@ wdf.to_csv(r'..\backend-take-home\warehouse.csv', index=None, header=True)
 wcdf = DataFrame(data=None, index=None, columns=['ID', 'ITEM_SKU', 'WAREHOUSE_NUMBER', 'QUANTITY'])
 wcdf.to_csv(r'..\backend-take-home\warehousecatalog.csv', index=None, header=True)
 
+# Defining usage of commands
 def usage():
     print('''Please enter a valid command. The following are the valid commands:
           ADD PRODUCT "PRODUCT NAME" SKU
@@ -46,6 +49,7 @@ def usage():
           LIST WAREHOUSES
           LIST WAREHOUSE WAREHOUSE#''')
 
+# Check if the product with SKU already exists
 def checksku(sku):
     skuPresent = False
     with open('productinventory.csv', 'rt') as f:
@@ -56,12 +60,15 @@ def checksku(sku):
     return skuPresent
 
 
+# Check the validity of arguments for ADD PRODUCT command
 def checkaddvalidity(replArgs):
     processedArgs = []
     partialStr = ""
     lastIndex = 0
     isPartofName = False
     validCommand = False
+
+    # Parsing the product name
     for i in range(len(replArgs)):
         if replArgs[i].count("\"") == 2:
             partialStr = replArgs[i].strip('\"')
@@ -85,6 +92,7 @@ def checkaddvalidity(replArgs):
     # print("Value of last index: ", lastIndex)
     # print("# of args left: ", replArgs[lastIndex+1:])
 
+    # check if the SKU is of the valid format
     if len(replArgs[lastIndex + 1:]) == 1:
         sku = replArgs[lastIndex + 1]
         # print("SKU:"+sku)
@@ -100,6 +108,7 @@ def checkaddvalidity(replArgs):
     return validCommand, processedArgs
 
 
+# Check if the warehouse already exists
 def checkwarehouse(wNumber):
     warehousePresent = False
     with open('warehouse.csv', 'rt') as f:
@@ -110,6 +119,7 @@ def checkwarehouse(wNumber):
     return warehousePresent
 
 
+# Check if the SKU of the product is valid
 def isvalidsku(sku):
     skuregex = re.compile(r'[0-9A-Za-z]{8}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{4}-[0-9A-Za-z]{12}')
     if re.fullmatch(skuregex, sku):
@@ -118,16 +128,20 @@ def isvalidsku(sku):
         return False
 
 
+# Update the availabilty in the warehouse and the catalog to update the stocking of products
 def updateavailabilitystock(warehouseCatalog):
     stock =0
     all_rows =[]
     with open('warehouse.csv', 'r') as stock:
         reader = csv.reader(stock, delimiter=',')
 
+        # Adding to the catalog by stocking items in warehouses
         with open('inter_warehouse.csv', 'w', newline='') as newStock:
             writer = csv.writer(newStock, delimiter=',')
             for row in reader:
                 if row[1] == str(warehouseCatalog['numberWarehouse']):
+
+                    # If the availabilty of the warehouse is greater than the number of products stocked
                     if int(row[3]) >= int(warehouseCatalog['quantity']):
                         row[3] = str(int(row[3]) - int(warehouseCatalog['quantity']))
                         stock = int(warehouseCatalog['quantity'])
@@ -137,6 +151,7 @@ def updateavailabilitystock(warehouseCatalog):
                         print("ALL ITEMS STOCKED")
                         print("ITEM {} ADDED TO WAREHOUSE {}".format(warehouseCatalog['itemSKU'], warehouseCatalog['numberWarehouse']))
 
+                    # If the availabilty of the warehouse is lesser than the number of items to be stocked
                     else:
                         total = warehouseCatalog['quantity']
                         # extra = int(warehouseCatalog['quantity']) - int(row[3])
@@ -158,6 +173,7 @@ def updateavailabilitystock(warehouseCatalog):
     with open('warehousecatalog.csv', 'r') as inputfile:
         reader = csv.reader(inputfile, delimiter=',')
 
+        # Update the availabilty of the warehouse
         with open('inter_warehousecatalog.csv', 'w', newline='') as outputfile:
             writer = csv.writer(outputfile, delimiter=',')
             for row in reader:
@@ -177,6 +193,7 @@ def updateavailabilitystock(warehouseCatalog):
     os.rename('inter_warehousecatalog.csv', 'warehousecatalog.csv')
 
 
+# Update the availabilty in the warehouse and the catalog to update the unstocking of products
 def updateavailabilityunstock(warehouseCatalog):
 
     all_rows = []
@@ -189,6 +206,8 @@ def updateavailabilityunstock(warehouseCatalog):
             for row in reader:
                 # print ("Row", row)
                 if row[1] == str(warehouseCatalog['itemSKU']) and row[2] == str(warehouseCatalog['numberWarehouse']):
+
+                    # If the number of products to be unstocked is lesser than the number of products in stock
                     if int(row[3]) >= int(warehouseCatalog['quantity']):
                         # print("Is it even trying unstocking?")
                         row[3] = str(int(row[3]) - int(warehouseCatalog['quantity']))
@@ -196,6 +215,8 @@ def updateavailabilityunstock(warehouseCatalog):
                         print("{} ITEMS UNSTOCKED FROM WAREHOUSE {}".format(warehouseCatalog['quantity'],
                                                                      warehouseCatalog['numberWarehouse']))
                         unstocked = int(warehouseCatalog['quantity'])
+
+                    # If the number of products to be unstocked is greater than the number of products in stock
                     else:
                         total = warehouseCatalog['quantity']
                         # extra = int(warehouseCatalog['quantity']) - int(row[3])
@@ -215,6 +236,7 @@ def updateavailabilityunstock(warehouseCatalog):
     with open('warehouse.csv', 'r') as inputfile:
         reader = csv.reader(inputfile, delimiter=',')
 
+        # Update the warehouse availability
         with open('inter_warehouse.csv', 'w', newline='') as outputfile:
             writer = csv.writer(outputfile, delimiter=',')
             for row in reader:
@@ -230,18 +252,16 @@ def updateavailabilityunstock(warehouseCatalog):
 
 
 
-
-
-
+# Pretty printing of data
 def prettyprint(data):
     col_width = max(len(word) for row in data for word in row) + 2  # padding
     for row in data:
         print("".join(word.ljust(col_width) for word in row))
 
-
+# start of REPL; Ctrl+Z to exit the REPL
 while True:
     try:
-        if queue.full():
+        if queue.full(): # Logging in batches of 2
             with open('pmsoftware.log', 'a', newline='\n') as logfile:
                 logfile.write(str(datetime.datetime.now().strftime("%m/%d/%Y %I:%M:%S"))+" \t"+ queue.get()+"\n")
                 logfile.write(str(datetime.datetime.now().strftime("%m/%d/%Y %I:%M:%S"))+" \t"+ queue.get()+"\n")
@@ -254,8 +274,9 @@ while True:
         # print(replArgs)
 
         if replArgs[0].upper() == "ADD":
-            if replArgs[1].upper() == "PRODUCT":
 
+            # Adding a product
+            if replArgs[1].upper() == "PRODUCT":
                 validcmd, pArgs = checkaddvalidity(replArgs[2:])
                 # print("Result", validcmd, pArgs)
                 if validcmd == True:
@@ -275,6 +296,8 @@ while True:
                 else:
                     print("Invalid number of arguments")
                     usage()
+
+            # Adding a warehouse
             elif replArgs[1].upper() == "WAREHOUSE":
                 # print("Adding a warehouse")
                 argList = replArgs[2:]
@@ -304,6 +327,8 @@ while True:
                     usage()
             else:
                 usage()
+
+        # Stock items into warehouse
         elif replArgs[0].upper() == "STOCK":
             # print("Stocking up")
             if len(replArgs) ==4:
@@ -327,8 +352,8 @@ while True:
                 print("Invalid number of arguments")
                 usage()
 
+        # Unstock items from warehouse
         elif replArgs[0].upper() == "UNSTOCK":
-
             if len(replArgs) ==4:
                 validSKU = isvalidsku(replArgs[1]) & checksku(replArgs[1])
                 validWarehouse = replArgs[2].isnumeric() & checkwarehouse(replArgs[2])
@@ -353,6 +378,8 @@ while True:
                 usage()
 
         elif replArgs[0].upper() == "LIST" and len(replArgs)>1:
+
+            # Listing the products
             pInventory =[]
             if replArgs[1].upper() == "PRODUCTS" and len(replArgs) == 2:
                 with open('productinventory.csv', 'rt') as f:
@@ -361,6 +388,7 @@ while True:
                         pInventory.append([row[1], row[2]])
                 prettyprint(pInventory)
 
+            # Listing the items in the warehouse
             elif replArgs[1].upper() == "WAREHOUSE" and len(replArgs) == 3:
                 productDict = {}
                 if replArgs[2].isnumeric() and checkwarehouse(replArgs[2]):
@@ -369,7 +397,7 @@ while True:
                         reader = csv.reader(f, delimiter=',')
                         for row in reader:
                             if replArgs[2] == row[2]:
-                                catalog.append([row[3], row[1], ''])
+                                catalog.append(['', row[1], row[3]])
 
                     if len(catalog) == 0:
                         print("WAREHOUSE {} IS EMPTY".format(replArgs[2]))
@@ -381,12 +409,10 @@ while True:
 
                         for row in catalog:
                             if row[1] in productDict:
-                                row[2] = productDict[row[1]]
-                            row = row[::-1]
+                                row[0] = productDict[row[1]]
+                            # row = row[::-1]
 
                         prettyprint(catalog)
-
-
 
                 elif replArgs[2].isnumeric() == False:
                     print("Invalid arguments")
@@ -394,7 +420,7 @@ while True:
                 elif replArgs[2].isnumeric() and checkwarehouse(replArgs[2]) ==False:
                     print("WAREHOUSE {} DOES NOT EXIST".format(replArgs[2]))
 
-
+            # Listing the warehouses
             elif replArgs[1].upper() == "WAREHOUSES" and len(replArgs) == 2:
                 warehouseList = []
                 with open('warehouse.csv', 'rt') as f:
@@ -408,6 +434,8 @@ while True:
                 usage()
         else:
             usage()
+
+    # Handling of EOF
     except EOFError as e:
         print("Exiting the Product Inventory Management System")
         break
