@@ -1,4 +1,4 @@
-# Rooms To Go - Take Home Assessment
+# Rooms To Go - Take Home Assignment
 Product Management Software is designed to manage the products in the inventory using simple commands.
 It is used to add into/maintain products' inventory and a catalog that informs about the warehouse that has the product.
 
